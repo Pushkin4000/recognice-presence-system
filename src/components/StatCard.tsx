@@ -12,20 +12,10 @@ interface StatCardProps {
   trend?: {
     value: number;
     isPositive: boolean;
-    label?: string;
   };
-  loading?: boolean;
 }
 
-const StatCard = ({ 
-  title, 
-  value, 
-  icon, 
-  description, 
-  className, 
-  trend,
-  loading = false
-}: StatCardProps) => {
+const StatCard = ({ title, value, icon, description, className, trend }: StatCardProps) => {
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -37,16 +27,10 @@ const StatCard = ({
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="h-8 w-24 rounded bg-muted animate-pulse mb-1"></div>
-        ) : (
-          <div className="text-2xl font-bold">{value}</div>
-        )}
-        
+        <div className="text-2xl font-bold">{value}</div>
         {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
-        
         {trend && (
           <div className="flex items-center mt-1">
             <span
@@ -57,14 +41,8 @@ const StatCard = ({
               {trend.isPositive ? "+" : "-"}
               {trend.value}%
             </span>
-            <span className="text-xs text-muted-foreground ml-1">
-              {trend.label || "from last period"}
-            </span>
+            <span className="text-xs text-muted-foreground ml-1">from last period</span>
           </div>
-        )}
-        
-        {loading && !description && !trend && (
-          <div className="h-4 w-32 rounded bg-muted animate-pulse mt-1"></div>
         )}
       </CardContent>
     </Card>
