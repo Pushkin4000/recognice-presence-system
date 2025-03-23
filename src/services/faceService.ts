@@ -265,8 +265,8 @@ export const getRecentAttendance = async (limit = 20): Promise<any[]> => {
     
     return data.map(record => ({
       id: record.id,
-      userId: record.profiles?.user_id,
-      userName: record.profiles?.name,
+      userId: record.profiles ? record.profiles.user_id : null,
+      userName: record.profiles ? record.profiles.name : null,
       date: new Date(record.date),
       timeIn: record.time_in,
       status: record.status,
@@ -305,8 +305,8 @@ export const getTodayAttendance = async (): Promise<any[]> => {
     
     return data.map(record => ({
       id: record.id,
-      userId: record.profiles?.user_id,
-      userName: record.profiles?.name,
+      userId: record.profiles ? record.profiles.user_id : null,
+      userName: record.profiles ? record.profiles.name : null,
       date: new Date(record.date),
       timeIn: record.time_in,
       status: record.status,
