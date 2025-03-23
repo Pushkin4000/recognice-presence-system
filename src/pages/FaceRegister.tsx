@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { LoaderCircle, User, Camera, CheckCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import FaceDetection from "@/components/FaceDetection";
+import { registerFace } from "@/services/faceRegistration";
 
 const FaceRegister = () => {
   const { isAuthenticated, user } = useAuth();
@@ -50,16 +51,37 @@ const FaceRegister = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create a temporary image element for processing
+      const img = new Image();
+      img.src = capturedImage;
       
-      toast({
-        title: "Success",
-        description: "Face registered successfully",
+      // Wait for image to load
+      await new Promise((resolve) => {
+        img.onload = resolve;
       });
       
-      setIsComplete(true);
+      const userId = user?.id || Math.random().toString(36).substring(2, 9);
+      const name = user?.name || "Unknown User";
+      
+      // Register face in Supabase
+      const success = await registerFace(img, userId, name, employeeId, department);
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Face registered successfully",
+        });
+        
+        setIsComplete(true);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to register face",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
+      console.error("Error registering face:", error);
       toast({
         title: "Error",
         description: "Failed to register face",

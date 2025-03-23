@@ -15,74 +15,42 @@ import {
   Building,
   UserCheck,
 } from "lucide-react";
-
-// Mock data for the dashboard
-const generateMockAttendanceData = (): AttendanceRecord[] => {
-  const statuses: ("present" | "absent" | "late")[] = ["present", "present", "present", "late", "absent"];
-  const names = [
-    "John Smith",
-    "Emily Johnson",
-    "Michael Brown",
-    "Jessica Davis",
-    "Daniel Wilson",
-    "Sarah Martinez",
-    "Robert Taylor",
-    "Jennifer Anderson",
-    "David Thomas",
-    "Lisa Garcia",
-  ];
-
-  const locations = [
-    "Main Office",
-    "West Wing",
-    "East Building",
-    "Conference Room",
-    "Training Center",
-  ];
-
-  return Array.from({ length: 20 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-    
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    
-    return {
-      id: `attendance-${i}`,
-      userId: `user-${i % 10}`,
-      userName: names[i % names.length],
-      date: date,
-      timeIn: `${Math.floor(Math.random() * 3) + 8}:${Math.floor(Math.random() * 60).toString().padStart(2, "0")} AM`,
-      status: randomStatus,
-      location: locations[Math.floor(Math.random() * locations.length)],
-      notes: randomStatus === "late" ? "Traffic delay" : undefined,
-    };
-  });
-};
+import { getAttendanceStats, getTodayAttendance, getRecentAttendance } from "@/services/attendanceReports";
 
 const Dashboard = () => {
   const { isAuthenticated, user } = useAuth();
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [todayData, setTodayData] = useState<AttendanceRecord[]>([]);
+  const [stats, setStats] = useState({
+    totalEmployees: 0,
+    presentToday: 0,
+    absentToday: 0,
+    lateToday: 0,
+    presentPercentage: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(true);
       
-      const mockData = generateMockAttendanceData();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const todayRecords = mockData.filter(record => {
-        const recordDate = new Date(record.date);
-        recordDate.setHours(0, 0, 0, 0);
-        return recordDate.getTime() === today.getTime();
-      });
-      
-      setAttendanceData(mockData);
-      setTodayData(todayRecords);
-      setIsLoading(false);
+      try {
+        // Get attendance statistics
+        const statistics = await getAttendanceStats();
+        setStats(statistics);
+        
+        // Get today's attendance records
+        const todayRecords = await getTodayAttendance();
+        setTodayData(todayRecords);
+        
+        // Get recent attendance records
+        const recentRecords = await getRecentAttendance(30);
+        setAttendanceData(recentRecords);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadData();
@@ -91,13 +59,6 @@ const Dashboard = () => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
-  // Calculate statistics
-  const totalEmployees = 10;
-  const presentToday = todayData.filter(record => record.status === "present").length;
-  const absentToday = todayData.filter(record => record.status === "absent").length;
-  const lateToday = todayData.filter(record => record.status === "late").length;
-  const presentPercentage = totalEmployees ? Math.round((presentToday / totalEmployees) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -111,23 +72,23 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Employees"
-          value={totalEmployees}
+          value={stats.totalEmployees}
           icon={<Users className="h-4 w-4" />}
         />
         <StatCard
           title="Present Today"
-          value={`${presentToday} (${presentPercentage}%)`}
+          value={`${stats.presentToday} (${stats.presentPercentage}%)`}
           icon={<CheckCircle className="h-4 w-4" />}
           trend={{ value: 5, isPositive: true }}
         />
         <StatCard
           title="Absent Today"
-          value={absentToday}
+          value={stats.absentToday}
           icon={<XCircle className="h-4 w-4" />}
         />
         <StatCard
           title="Late Today"
-          value={lateToday}
+          value={stats.lateToday}
           icon={<Clock className="h-4 w-4" />}
         />
       </div>
@@ -180,7 +141,7 @@ const Dashboard = () => {
             </Card>
           ) : (
             <AttendanceTable
-              data={attendanceData.sort((a, b) => b.date.getTime() - a.date.getTime())}
+              data={attendanceData}
               title="Recent Attendance Records"
             />
           )}
