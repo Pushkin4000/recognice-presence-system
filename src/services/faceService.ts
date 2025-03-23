@@ -85,19 +85,35 @@ export const recognizeFace = async (imageData: string): Promise<{ userId: string
       .select('user_id, name, face_encoding')
       .not('face_encoding', 'is', null);
     
-    if (error || !profiles.length) {
+    if (error || !profiles || profiles.length === 0) {
       console.error('Error fetching face data or no registered faces:', error);
       return null;
     }
     
     // Create face matcher with the registered faces
     const labeledDescriptors = profiles.map(profile => {
-      const descriptorArray = JSON.parse(profile.face_encoding as string);
-      return new faceapi.LabeledFaceDescriptors(
-        profile.user_id, 
-        [new Float32Array(descriptorArray)]
-      );
-    });
+      // Make sure face_encoding is defined before parsing
+      if (!profile.face_encoding) {
+        console.warn(`Profile ${profile.user_id} has no face encoding`);
+        return null;
+      }
+      
+      try {
+        const descriptorArray = JSON.parse(profile.face_encoding);
+        return new faceapi.LabeledFaceDescriptors(
+          profile.user_id, 
+          [new Float32Array(descriptorArray)]
+        );
+      } catch (e) {
+        console.error(`Error parsing face encoding for ${profile.user_id}:`, e);
+        return null;
+      }
+    }).filter(Boolean) as faceapi.LabeledFaceDescriptors[]; // Filter out null values
+    
+    if (labeledDescriptors.length === 0) {
+      console.error('No valid face descriptors found');
+      return null;
+    }
     
     const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6); // 0.6 is the matching threshold
     
