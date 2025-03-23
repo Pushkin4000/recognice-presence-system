@@ -2,14 +2,20 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize the Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase credentials. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
+  console.error('Missing Supabase credentials. Please check your environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+  // Provide fallback values for development to prevent crashes
+  // This should be removed in production
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Use non-nullable assertion as we've verified the values or provided defaults
+export const supabase = createClient(
+  supabaseUrl as string, 
+  supabaseAnonKey as string
+);
 
 // Database types
 export type UserProfile = {

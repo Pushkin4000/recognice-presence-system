@@ -259,14 +259,14 @@ export const getRecentAttendance = async (limit = 20): Promise<any[]> => {
       .order('date', { ascending: false })
       .limit(limit);
     
-    if (error) {
+    if (error || !data) {
       throw error;
     }
     
     return data.map(record => ({
       id: record.id,
-      userId: record.profiles.user_id,
-      userName: record.profiles.name,
+      userId: record.profiles?.user_id,
+      userName: record.profiles?.name,
       date: new Date(record.date),
       timeIn: record.time_in,
       status: record.status,
@@ -299,14 +299,14 @@ export const getTodayAttendance = async (): Promise<any[]> => {
       `)
       .eq('date', today);
     
-    if (error) {
+    if (error || !data) {
       throw error;
     }
     
     return data.map(record => ({
       id: record.id,
-      userId: record.profiles.user_id,
-      userName: record.profiles.name,
+      userId: record.profiles?.user_id,
+      userName: record.profiles?.name,
       date: new Date(record.date),
       timeIn: record.time_in,
       status: record.status,
