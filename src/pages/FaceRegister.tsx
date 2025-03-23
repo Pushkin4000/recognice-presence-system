@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { LoaderCircle, User, Camera, CheckCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import FaceDetection from "@/components/FaceDetection";
-import { registerFace } from "@/services/faceService";
+import { registerFace } from "@/services/face";
 import { supabase } from "@/lib/supabase";
 
 const FaceRegister = () => {

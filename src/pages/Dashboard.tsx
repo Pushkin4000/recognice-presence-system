@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +14,7 @@ import {
   Building,
   UserCheck,
 } from "lucide-react";
-import { getAttendanceSummary, getRecentAttendance, getTodayAttendance } from "@/services/faceService";
+import { getAttendanceSummary, getRecentAttendance, getTodayAttendance } from "@/services/face";
 
 const Dashboard = () => {
   const { isAuthenticated, user } = useAuth();

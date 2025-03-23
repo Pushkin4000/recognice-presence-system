@@ -1,10 +1,9 @@
-
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, UserCheck, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
-import { loadFaceApiModels, recognizeFace } from "@/services/faceService";
+import { loadFaceApiModels, recognizeFace } from "@/services/face";
 
 interface FaceDetectionProps {
   mode: "register" | "recognize";

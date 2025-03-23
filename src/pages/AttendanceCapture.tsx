@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import FaceDetection from "@/components/FaceDetection";
-import { recordAttendance } from "@/services/faceService";
+import { recordAttendance } from "@/services/face";
 import { Clock, MapPin, CheckCircle, RefreshCw, Calendar } from "lucide-react";
 
 const AttendanceCapture = () => {
