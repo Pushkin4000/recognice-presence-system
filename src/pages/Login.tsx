@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,19 +7,53 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoaderCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const Login = () => {
   const { login, isLoading, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    // Set a timeout to ensure we stop showing loading state 
+    // even if there's an issue with authentication initialization
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Once authentication is no longer loading, we're done initializing
+    if (!isLoading) {
+      setIsInitializing(false);
+    }
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      return;
+    }
+    
     await login(email, password);
   };
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Show loading state while initializing
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-muted/30">
+        <LoaderCircle className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
