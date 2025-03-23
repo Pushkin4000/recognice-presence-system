@@ -19,9 +19,11 @@ export type UserProfile = {
   name: string;
   email: string;
   avatar_url?: string;
+  avatar?: string; // Added to match usage in components
   employee_id?: string;
   department?: string;
   face_encoding?: string;
+  notes?: string;
   created_at: string;
 };
 

@@ -94,8 +94,8 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
           const imageData = canvas.toDataURL("image/jpeg", 0.8);
           
           try {
-            // Use face-api to detect if there's a face
-            const img = await createImageBitmap(context.getImageData(0, 0, canvas.width, canvas.height).data);
+            // Use the imageData directly for face detection
+            // This fixes the Uint8ClampedArray issue
             const detection = await fetch(imageData)
               .then(res => res.blob())
               .then(blob => {
