@@ -279,6 +279,7 @@ export const getRecentAttendance = async (limit = 20): Promise<any[]> => {
       throw error;
     }
     
+    // Fix: Access the profiles property correctly by understanding it's an object, not an array
     return data.map(record => ({
       id: record.id,
       userId: record.profiles ? record.profiles.user_id : null,
@@ -319,6 +320,7 @@ export const getTodayAttendance = async (): Promise<any[]> => {
       throw error;
     }
     
+    // Fix: Access the profiles property correctly by understanding it's an object, not an array
     return data.map(record => ({
       id: record.id,
       userId: record.profiles ? record.profiles.user_id : null,
