@@ -279,11 +279,11 @@ export const getRecentAttendance = async (limit = 20): Promise<any[]> => {
       throw error;
     }
     
-    // Fix: Access the profiles property correctly by understanding it's an object, not an array
+    // Properly access the profiles property (it's a nested object, not an array)
     return data.map(record => ({
       id: record.id,
-      userId: record.profiles ? record.profiles.user_id : null,
-      userName: record.profiles ? record.profiles.name : null,
+      userId: record.profiles?.user_id || null,
+      userName: record.profiles?.name || null,
       date: new Date(record.date),
       timeIn: record.time_in,
       status: record.status,
@@ -320,11 +320,11 @@ export const getTodayAttendance = async (): Promise<any[]> => {
       throw error;
     }
     
-    // Fix: Access the profiles property correctly by understanding it's an object, not an array
+    // Properly access the profiles property (it's a nested object, not an array)
     return data.map(record => ({
       id: record.id,
-      userId: record.profiles ? record.profiles.user_id : null,
-      userName: record.profiles ? record.profiles.name : null,
+      userId: record.profiles?.user_id || null,
+      userName: record.profiles?.name || null,
       date: new Date(record.date),
       timeIn: record.time_in,
       status: record.status,
