@@ -11,6 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { LoaderCircle, User, Camera, CheckCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import FaceDetection from "@/components/FaceDetection";
+import { registerFace } from "@/services/faceService";
+import { supabase } from "@/lib/supabase";
 
 const FaceRegister = () => {
   const { isAuthenticated, user } = useAuth();
@@ -38,7 +40,7 @@ const FaceRegister = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!capturedImage) {
+    if (!capturedImage || !user) {
       toast({
         title: "Error",
         description: "Please capture a face image first",
@@ -50,8 +52,22 @@ const FaceRegister = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Register face in the system
+      const success = await registerFace(user.id, capturedImage);
+      
+      if (!success) {
+        throw new Error("Failed to register face");
+      }
+      
+      // Update additional profile information
+      await supabase
+        .from('profiles')
+        .update({
+          employee_id: employeeId,
+          department: department,
+          notes: notes
+        })
+        .eq('user_id', user.id);
       
       toast({
         title: "Success",
@@ -60,6 +76,7 @@ const FaceRegister = () => {
       
       setIsComplete(true);
     } catch (error) {
+      console.error("Registration error:", error);
       toast({
         title: "Error",
         description: "Failed to register face",

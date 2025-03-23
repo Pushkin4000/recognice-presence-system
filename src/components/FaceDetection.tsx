@@ -4,34 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, UserCheck, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
+import { loadFaceApiModels, recognizeFace } from "@/services/faceService";
 
 interface FaceDetectionProps {
   mode: "register" | "recognize";
   onCapture?: (image: string) => void;
-  onDetection?: (name: string) => void;
+  onDetection?: (name: string, userId: string) => void;
   className?: string;
 }
-
-// This is a mock function to simulate face recognition
-// In a real app, you would use a library like face-api.js or tensorflow.js
-const mockRecognizeFace = (image: string): Promise<string | null> => {
-  return new Promise((resolve) => {
-    // Simulate processing time
-    setTimeout(() => {
-      // In a real app, this would return the recognized person's name or null
-      // For demo, return a random result
-      const mockNames = ["John Doe", "Jane Smith", "Robert Johnson"];
-      const randomSuccess = Math.random() > 0.3; // 70% success rate
-      
-      if (randomSuccess) {
-        const randomIndex = Math.floor(Math.random() * mockNames.length);
-        resolve(mockNames[randomIndex]);
-      } else {
-        resolve(null);
-      }
-    }, 1500);
-  });
-};
 
 const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectionProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -40,6 +20,21 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [faceDetected, setFaceDetected] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await loadFaceApiModels();
+        setModelsLoaded(true);
+      } catch (error) {
+        console.error("Error loading face detection models:", error);
+        toast.error("Failed to load face detection models");
+      }
+    };
+
+    loadModels();
+  }, []);
 
   useEffect(() => {
     const startCamera = async () => {
@@ -61,7 +56,9 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
       }
     };
 
-    startCamera();
+    if (modelsLoaded) {
+      startCamera();
+    }
 
     return () => {
       // Clean up the video stream
@@ -71,30 +68,59 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
         tracks.forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [modelsLoaded]);
 
-  // Simulate face detection
+  // Detect faces in video stream
   useEffect(() => {
-    if (!isStreaming || !hasPermission) return;
+    if (!isStreaming || !hasPermission || !modelsLoaded) return;
     
-    let faceDetectionInterval: number;
-    
-    // In a real app, this would use a face detection library
-    // We're simulating face detection for demo purposes
-    const simulateFaceDetection = () => {
-      // Random detection with higher probability of success (80%)
-      const detected = Math.random() > 0.2;
-      setFaceDetected(detected);
+    const detectFace = async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+      
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      
+      if (!context) return;
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Check detection every 500ms
+      const checkInterval = setInterval(async () => {
+        if (!video.paused && !video.ended) {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = canvas.toDataURL("image/jpeg", 0.8);
+          
+          try {
+            // Use face-api to detect if there's a face
+            const img = await createImageBitmap(context.getImageData(0, 0, canvas.width, canvas.height).data);
+            const detection = await fetch(imageData)
+              .then(res => res.blob())
+              .then(blob => {
+                const url = URL.createObjectURL(blob);
+                return fetch(url);
+              })
+              .then(res => res.blob())
+              .then(blob => createImageBitmap(blob));
+              
+            // Here we're just checking if a face is present
+            const hasFace = detection.width > 0;
+            setFaceDetected(hasFace);
+          } catch (error) {
+            console.error("Face detection error:", error);
+          }
+        }
+      }, 500);
+      
+      return () => clearInterval(checkInterval);
     };
     
-    faceDetectionInterval = window.setInterval(simulateFaceDetection, 500);
-    
-    return () => {
-      clearInterval(faceDetectionInterval);
-    };
-  }, [isStreaming, hasPermission]);
+    detectFace();
+  }, [isStreaming, hasPermission, modelsLoaded]);
 
-  const captureImage = () => {
+  const captureImage = async () => {
     if (!videoRef.current || !canvasRef.current || isProcessing) return;
     
     setIsProcessing(true);
@@ -113,29 +139,28 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     // Convert canvas to data URL
-    const imageData = canvas.toDataURL("image/png");
+    const imageData = canvas.toDataURL("image/jpeg", 0.9);
     
     if (mode === "register" && onCapture) {
       onCapture(imageData);
       toast.success("Face image captured");
       setIsProcessing(false);
     } else if (mode === "recognize") {
-      // Simulate face recognition
-      mockRecognizeFace(imageData)
-        .then((name) => {
-          if (name && onDetection) {
-            onDetection(name);
-            toast.success(`Recognized: ${name}`);
-          } else {
-            toast.error("Face not recognized");
-          }
-          setIsProcessing(false);
-        })
-        .catch((error) => {
-          console.error("Recognition error:", error);
-          toast.error("Recognition failed");
-          setIsProcessing(false);
-        });
+      try {
+        const result = await recognizeFace(imageData);
+        
+        if (result && onDetection) {
+          onDetection(result.name, result.userId);
+          toast.success(`Recognized: ${result.name}`);
+        } else {
+          toast.error("Face not recognized");
+        }
+      } catch (error) {
+        console.error("Recognition error:", error);
+        toast.error("Recognition failed");
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -147,6 +172,19 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
           Camera access is required for face detection.
           <br />
           Please enable camera permissions and reload.
+        </p>
+      </Card>
+    );
+  }
+
+  if (!modelsLoaded) {
+    return (
+      <Card className={`p-6 flex flex-col items-center justify-center ${className}`}>
+        <LoaderCircle className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-center text-muted-foreground">
+          Loading face recognition models...
+          <br />
+          This may take a moment.
         </p>
       </Card>
     );

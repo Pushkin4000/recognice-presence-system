@@ -7,13 +7,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import FaceDetection from "@/components/FaceDetection";
+import { recordAttendance } from "@/services/faceService";
 import { Clock, MapPin, CheckCircle, RefreshCw, Calendar } from "lucide-react";
 
 const AttendanceCapture = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [detected, setDetected] = useState(false);
   const [recognizedName, setRecognizedName] = useState("");
   const [captureTime, setCaptureTime] = useState("");
+  const [location, setLocation] = useState("Main Office, Building A");
+  const [userId, setUserId] = useState("");
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -36,14 +39,21 @@ const AttendanceCapture = () => {
     });
   };
 
-  const handlePersonDetected = (name: string) => {
+  const handlePersonDetected = async (name: string, detectedUserId: string) => {
     setRecognizedName(name);
+    setUserId(detectedUserId);
     const now = new Date();
     setCaptureTime(formatTime(now));
-    setDetected(true);
     
-    // In a real app, you would send this data to your backend
-    toast.success(`Attendance recorded for ${name}`);
+    // Record attendance in the database
+    const success = await recordAttendance(detectedUserId, location);
+    
+    if (success) {
+      setDetected(true);
+      toast.success(`Attendance recorded for ${name}`);
+    } else {
+      toast.error("Failed to record attendance");
+    }
   };
 
   const handleReset = () => {
