@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart as RechartsBarChart, Bar } from "recharts";
 import AttendanceTable, { AttendanceRecord } from "@/components/AttendanceTable";
+import { DateRange } from "react-day-picker";
 
-// Mock data for reports
 const generateMockAttendanceData = (days: number): AttendanceRecord[] => {
   const statuses: ("present" | "absent" | "late")[] = ["present", "present", "present", "late", "absent"];
   const names = [
@@ -38,7 +37,6 @@ const generateMockAttendanceData = (days: number): AttendanceRecord[] => {
     date.setDate(date.getDate() - day);
 
     for (let i = 0; i < 10; i++) {
-      // Skip some days for some users to simulate absences
       if (Math.random() > 0.9) continue;
 
       const status = statuses[Math.floor(Math.random() * statuses.length)];
@@ -80,21 +78,13 @@ const Reports = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Fix: Change the type to match the Calendar component's DateRange type
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined,
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   useEffect(() => {
     const loadData = async () => {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const mockData = generateMockAttendanceData(30);
@@ -112,8 +102,7 @@ const Reports = () => {
     
     let filtered = [...attendanceData];
     
-    // Filter by date range
-    if (dateRange.from) {
+    if (dateRange?.from) {
       filtered = filtered.filter(record => {
         const recordDate = new Date(record.date);
         recordDate.setHours(0, 0, 0, 0);
@@ -121,7 +110,7 @@ const Reports = () => {
       });
     }
     
-    if (dateRange.to) {
+    if (dateRange?.to) {
       filtered = filtered.filter(record => {
         const recordDate = new Date(record.date);
         recordDate.setHours(0, 0, 0, 0);
@@ -129,12 +118,10 @@ const Reports = () => {
       });
     }
     
-    // Filter by employee
     if (selectedEmployee !== "all") {
       filtered = filtered.filter(record => record.userId === selectedEmployee);
     }
     
-    // Filter by status
     if (selectedStatus !== "all") {
       filtered = filtered.filter(record => record.status === selectedStatus);
     }
@@ -147,7 +134,6 @@ const Reports = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Get unique employees from data
   const employees = Array.from(new Set(attendanceData.map(record => record.userId))).map(userId => {
     const record = attendanceData.find(r => r.userId === userId);
     return { id: userId, name: record?.userName || "Unknown" };
@@ -180,7 +166,7 @@ const Reports = () => {
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
+                    {dateRange?.from ? (
                       dateRange.to ? (
                         <>
                           {format(dateRange.from, "LLL dd, y")} -{" "}
@@ -198,7 +184,7 @@ const Reports = () => {
                   <Calendar
                     initialFocus
                     mode="range"
-                    defaultMonth={dateRange.from}
+                    defaultMonth={dateRange?.from}
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}

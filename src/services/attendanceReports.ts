@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export const getAttendanceStats = async () => {
   // Get total employees count (profiles)
