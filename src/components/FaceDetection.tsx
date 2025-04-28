@@ -2,8 +2,9 @@
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Camera, UserCheck, LoaderCircle } from "lucide-react";
+import { Camera, UserCheck, LoaderCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useFaceRecognition } from "@/hooks/useFaceRecognition";
 
 interface FaceDetectionProps {
   mode: "register" | "recognize";
@@ -40,6 +41,7 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [faceDetected, setFaceDetected] = useState(false);
+  const { isModelLoading, errorMessage } = useFaceRecognition();
 
   useEffect(() => {
     const startCamera = async () => {
@@ -139,6 +141,35 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
     }
   };
 
+  if (errorMessage) {
+    return (
+      <Card className={`p-6 flex flex-col items-center justify-center ${className}`}>
+        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <h3 className="text-lg font-medium mb-2">Model Loading Error</h3>
+        <p className="text-center text-muted-foreground mb-4">
+          {errorMessage}
+        </p>
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-sm text-amber-800 w-full">
+          <p className="font-medium mb-2">Setup Instructions:</p>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>Download face-api.js models from <a href="https://github.com/justadudewhohacks/face-api.js/tree/master/weights" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">GitHub</a></li>
+            <li>Create a <code className="bg-amber-100 px-1 rounded">public/models</code> directory in your project</li>
+            <li>Place the following model files in the directory:</li>
+            <ul className="list-disc pl-5 space-y-1 mt-1">
+              <li>ssd_mobilenetv1_model-weights_manifest.json</li>
+              <li>ssd_mobilenetv1_model-shard1</li>
+              <li>face_landmark_68_model-weights_manifest.json</li>
+              <li>face_landmark_68_model-shard1</li>
+              <li>face_recognition_model-weights_manifest.json</li>
+              <li>face_recognition_model-shard1</li>
+            </ul>
+            <li>Reload the page after adding the models</li>
+          </ol>
+        </div>
+      </Card>
+    );
+  }
+
   if (hasPermission === false) {
     return (
       <Card className={`p-6 flex flex-col items-center justify-center ${className}`}>
@@ -196,17 +227,19 @@ const FaceDetection = ({ mode, onCapture, onDetection, className }: FaceDetectio
         <div className="p-4 flex justify-center">
           <Button
             onClick={captureImage}
-            disabled={!faceDetected || isProcessing}
+            disabled={!faceDetected || isProcessing || isModelLoading}
             className="px-4 gap-2"
           >
             {isProcessing ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : isModelLoading ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
             ) : mode === "register" ? (
               <Camera className="h-4 w-4" />
             ) : (
               <UserCheck className="h-4 w-4" />
             )}
-            {mode === "register" ? "Capture Face" : "Take Attendance"}
+            {isModelLoading ? "Loading Models..." : mode === "register" ? "Capture Face" : "Take Attendance"}
           </Button>
         </div>
       </div>

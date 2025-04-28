@@ -10,12 +10,27 @@ export const FACE_MATCH_THRESHOLD = 0.6;
 // Initialize face-api.js models
 export const loadModels = async () => {
   try {
-    console.log('Loading face-api models...');
+    console.log('Loading face-api models from:', MODEL_URL);
+    
+    // Create a test request to see if models exist
+    try {
+      const testRequest = await fetch(`${MODEL_URL}/ssd_mobilenetv1_model-weights_manifest.json`);
+      if (!testRequest.ok) {
+        throw new Error(`Models not found (status: ${testRequest.status})`);
+      }
+      console.log('Model manifests exist, proceeding with loading');
+    } catch (error) {
+      console.error('Error checking for models:', error);
+      throw new Error('Face model files not found. Please follow the setup instructions in README.md');
+    }
+    
+    // Continue with loading models
     await Promise.all([
       faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
       faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
     ]);
+    
     console.log('Face-api models loaded successfully');
     return true;
   } catch (error) {
