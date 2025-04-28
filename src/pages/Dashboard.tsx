@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,16 +19,16 @@ import {
 const generateMockAttendanceData = (): AttendanceRecord[] => {
   const statuses: ("present" | "absent" | "late")[] = ["present", "present", "present", "late", "absent"];
   const names = [
-    "John Smith",
-    "Emily Johnson",
-    "Michael Brown",
-    "Jessica Davis",
-    "Daniel Wilson",
-    "Sarah Martinez",
-    "Robert Taylor",
-    "Jennifer Anderson",
-    "David Thomas",
-    "Lisa Garcia",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan"
   ];
 
   const locations = [

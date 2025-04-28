@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -107,53 +106,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithFace = async (faceDescriptor: Float32Array): Promise<boolean> => {
     setIsLoading(true);
-    
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Auth user object:', user);
+      if (!user?.id) throw new Error('User must be signed in');
+      const userId = user.id;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+        throw new Error(`Invalid UUID: ${userId}`);
+      }
       // Get all users from the database
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .not('face_encoding', 'is', null);
-
       if (error) {
+        console.error('Supabase Error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         throw new Error(error.message);
       }
-
       let matchedUser = null;
-      
-      // Try to find a match among users with registered faces
       for (const profile of profiles) {
         if (profile.face_encoding && doFacesMatch(faceDescriptor, profile.face_encoding)) {
           matchedUser = profile;
           break;
         }
       }
-      
       if (!matchedUser) {
         toast.error('Face not recognized');
         return false;
       }
-      
-      // Convert the Supabase profile to our User type
-      const user: User = {
+      const userObj: User = {
         id: matchedUser.id,
         name: matchedUser.name,
         email: matchedUser.email,
-        role: 'user', // Default role, you might want to store this in the database
+        role: 'user',
         avatar: matchedUser.avatar_url,
         faceEncoding: matchedUser.face_encoding
       };
-      
-      // Store user in state and localStorage
-      setUser(user);
-      localStorage.setItem('attendance_user', JSON.stringify(user));
-      
+      setUser(userObj);
+      localStorage.setItem('attendance_user', JSON.stringify(userObj));
       toast.success('Face recognized! Logged in successfully');
       navigate('/dashboard');
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Face login failed');
-      console.error('Face login error:', error);
+      console.error('Supabase Error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       return false;
     } finally {
       setIsLoading(false);
@@ -196,33 +202,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const registerFace = async (userId: string, faceDescriptor: Float32Array): Promise<boolean> => {
     setIsLoading(true);
-    
     try {
-      // Convert the descriptor to a string for storage
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+        throw new Error(`Invalid UUID: ${userId}`);
+      }
       const faceEncoding = descriptorToString(faceDescriptor);
-      
-      // Update the profile in Supabase
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ face_encoding: faceEncoding })
-        .eq('id', userId);
-
-      if (error) {
-        throw new Error(error.message);
+        .eq('user_id', userId);
+      if (updateError) {
+        console.error('Supabase Error:', {
+          message: updateError.message,
+          code: updateError.code,
+          details: updateError.details,
+          hint: updateError.hint
+        });
+        throw new Error(updateError.message);
       }
-      
-      // Update local user
       if (user) {
         const updatedUser = { ...user, faceEncoding };
         setUser(updatedUser);
         localStorage.setItem('attendance_user', JSON.stringify(updatedUser));
       }
-      
       toast.success('Face registered successfully');
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to register face');
-      console.error('Face registration error:', error);
+      console.error('Supabase Error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       return false;
     } finally {
       setIsLoading(false);

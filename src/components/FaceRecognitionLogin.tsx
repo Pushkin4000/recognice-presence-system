@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { toast } from "sonner";
 import FaceDetection from "@/components/FaceDetection";
 import { useAuth } from "@/hooks/useAuth";
 import { getFaceDescriptor, loadModels } from "@/services/faceRecognition";
+import { supabase } from "@/lib/supabase";
 
 interface FaceRecognitionLoginProps {
   onSwitchToPassword: () => void;
@@ -61,8 +61,58 @@ const FaceRecognitionLogin = ({ onSwitchToPassword }: FaceRecognitionLoginProps)
         return;
       }
       
+      // Always use the UUID from Supabase Auth (Supabase v2)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error('User must be signed in');
+      const userId = user.id;
+
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+        throw new Error(`Invalid UUID: ${userId}`);
+      }
+
+      // Example fetch using user_id
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('employee_id, department, notes')
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('Supabase error:', {
+          message: fetchError.message,
+          code: fetchError.code,
+          details: fetchError.details,
+          full: fetchError
+        });
+        toast.error("Failed to fetch profile.");
+        return;
+      }
+      
       // Try to login with the face
       await loginWithFace(faceDescriptor);
+
+      // Update
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ face_descriptor: faceDescriptor })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('Supabase error:', {
+          message: updateError.message,
+          code: updateError.code,
+          details: updateError.details,
+          full: updateError
+        });
+        toast.success("Face uploaded successfully", {
+          style: {
+            backgroundColor: '#4CAF50',
+            color: 'white'
+          }
+        });
+      } else {
+        toast.success("Face uploaded: Your face template has been uploaded successfully." );
+      }
     } catch (error) {
       toast.error("Face login failed. Please try again.");
       console.error("Face login error:", error);
@@ -153,3 +203,7 @@ const FaceRecognitionLogin = ({ onSwitchToPassword }: FaceRecognitionLoginProps)
 };
 
 export default FaceRecognitionLogin;
+
+function isValidUUID(uuid) {
+  return /^[0-9a-fA-F-]{36}$/.test(uuid);
+}

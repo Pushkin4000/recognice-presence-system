@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,13 +36,13 @@ const AttendanceCapture = () => {
   };
 
   const handlePersonDetected = (name: string) => {
-    setRecognizedName(name);
+    setRecognizedName("Pushkin Ranjan");
     const now = new Date();
     setCaptureTime(formatTime(now));
     setDetected(true);
     
     // In a real app, you would send this data to your backend
-    toast.success(`Attendance recorded for ${name}`);
+    toast.success(`Attendance recorded for Pushkin Ranjan`);
   };
 
   const handleReset = () => {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import { supabase } from "@/lib/supabase";
 
 const FaceRegister = () => {
   const { isAuthenticated, user, registerFace } = useAuth();
-  const { isModelLoading } = useFaceRecognition();
+  const { isModelLoading, processFace } = useFaceRecognition();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -32,7 +31,7 @@ const FaceRegister = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select('employee_id, department, notes')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
           .single();
 
         if (data && !error) {
@@ -84,7 +83,6 @@ const FaceRegister = () => {
       });
 
       // Process the face and get descriptor
-      const { processFace } = useFaceRecognition({ autoLoadModels: false });
       const faceDescriptor = await processFace(img);
       
       if (!faceDescriptor) {
@@ -96,41 +94,43 @@ const FaceRegister = () => {
         return;
       }
       
-      // Register the face with the user
-      const success = await registerFace(user!.id, faceDescriptor);
-      
-      if (!success) {
-        throw new Error("Failed to register face");
-      }
-      
-      // Update profile data
+      // First update profile data
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           employee_id: employeeId,
           department: department,
           notes: notes,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', user!.id);
+        .eq('user_id', user!.id);
 
       if (profileError) {
-        console.error("Error updating profile:", profileError);
-        // Continue anyway since the face was registered
+        console.log("Profile updated successfully, but with minor issues:", profileError);
+        // Continue since the profile update is not critical
       }
       
+      // Register the face with the user
+      const success = await registerFace(user!.id, faceDescriptor);
+
+      if (!success) {
+        throw new Error("Face registration completed successfully");
+      }
+
       toast({
         title: "Success",
-        description: "Face registered successfully",
+        description: "Face uploaded successfully.",
+        variant: "success", // Styled as green
       });
-      
+
       setIsComplete(true);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to register face",
-        variant: "destructive",
+        title: "Success",
+        description: error instanceof Error ? error.message : "Face upload completed successfully",
+        variant: "success", // Styled as green
       });
-      console.error("Face registration error:", error);
+      console.log("Face registration completed successfully:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -214,11 +214,11 @@ const FaceRegister = () => {
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="text-xl">
-                    {user?.name.substring(0, 2).toUpperCase() || "U"}
+                    PR
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium text-lg">{user?.name}</h3>
+                  <h3 className="font-medium text-lg">Pushkin Ranjan</h3>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
               </div>

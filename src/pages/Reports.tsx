@@ -18,16 +18,16 @@ import { DateRange } from "react-day-picker";
 const generateMockAttendanceData = (days: number): AttendanceRecord[] => {
   const statuses: ("present" | "absent" | "late")[] = ["present", "present", "present", "late", "absent"];
   const names = [
-    "John Smith",
-    "Emily Johnson",
-    "Michael Brown",
-    "Jessica Davis",
-    "Daniel Wilson",
-    "Sarah Martinez",
-    "Robert Taylor",
-    "Jennifer Anderson",
-    "David Thomas",
-    "Lisa Garcia",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan",
+    "Pushkin Ranjan"
   ];
 
   const result: AttendanceRecord[] = [];
