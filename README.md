@@ -1,69 +1,40 @@
-# Welcome to your Lovable project
 
-## Project info
+# Face Recognition Attendance System
 
-**URL**: https://lovable.dev/projects/11919151-2f61-4913-9d82-06dba3af098a
+This project uses face-api.js for facial recognition. Before running the application, you need to download the face-api.js models.
 
-## How can I edit this code?
+## Setup Instructions
 
-There are several ways of editing your application.
+### 1. Download Face API Models
 
-**Use Lovable**
+Download the following models from the face-api.js GitHub repository and place them in the `public/models` directory:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/11919151-2f61-4913-9d82-06dba3af098a) and start prompting.
+- ssd_mobilenetv1_model-weights_manifest.json
+- ssd_mobilenetv1_model-shard1
+- face_landmark_68_model-weights_manifest.json
+- face_landmark_68_model-shard1
+- face_recognition_model-weights_manifest.json
+- face_recognition_model-shard1
 
-Changes made via Lovable will be committed automatically to this repo.
+You can download these models from:
+https://github.com/justadudewhohacks/face-api.js/tree/master/weights
 
-**Use your preferred IDE**
+### 2. Run the Application
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Usage
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Register a user account
+2. Go to Face Registration page to register your face
+3. Use face login to sign in quickly
+4. Use attendance capture to mark attendance
 
-**Use GitHub Codespaces**
+## Features
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/11919151-2f61-4913-9d82-06dba3af098a) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- Face detection and recognition
+- Attendance tracking
+- User management
+- Reports and analytics

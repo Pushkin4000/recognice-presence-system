@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { LoaderCircle, User, Camera, CheckCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import FaceDetection from "@/components/FaceDetection";
+import { useFaceRecognition } from "@/hooks/useFaceRecognition";
+import { supabase } from "@/lib/supabase";
 
 const FaceRegister = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, registerFace } = useAuth();
+  const { isModelLoading } = useFaceRecognition();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -21,6 +24,27 @@ const FaceRegister = () => {
   const [department, setDepartment] = useState("");
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
+
+  // Load existing profile data if available
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfile = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('employee_id, department, notes')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setEmployeeId(data.employee_id || '');
+          setDepartment(data.department || '');
+          setNotes(data.notes || '');
+        }
+      };
+      
+      fetchProfile();
+    }
+  }, [user]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -50,8 +74,49 @@ const FaceRegister = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create an image element from the captured image
+      const img = new Image();
+      img.src = capturedImage;
+      
+      // Wait for image to load
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+
+      // Process the face and get descriptor
+      const { processFace } = useFaceRecognition({ autoLoadModels: false });
+      const faceDescriptor = await processFace(img);
+      
+      if (!faceDescriptor) {
+        toast({
+          title: "Error",
+          description: "No face detected in the image",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Register the face with the user
+      const success = await registerFace(user!.id, faceDescriptor);
+      
+      if (!success) {
+        throw new Error("Failed to register face");
+      }
+      
+      // Update profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          employee_id: employeeId,
+          department: department,
+          notes: notes,
+        })
+        .eq('id', user!.id);
+
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+        // Continue anyway since the face was registered
+      }
       
       toast({
         title: "Success",
@@ -65,6 +130,7 @@ const FaceRegister = () => {
         description: "Failed to register face",
         variant: "destructive",
       });
+      console.error("Face registration error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -193,9 +259,14 @@ const FaceRegister = () => {
               <Button
                 type="submit"
                 className="w-full gap-2"
-                disabled={!capturedImage || isSubmitting || isComplete}
+                disabled={!capturedImage || isSubmitting || isComplete || isModelLoading}
               >
-                {isSubmitting ? (
+                {isModelLoading ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Loading Models...
+                  </>
+                ) : isSubmitting ? (
                   <>
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                     Registering...

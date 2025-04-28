@@ -2,6 +2,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { descriptorToString, doFacesMatch, getFaceDescriptor } from '@/services/faceRecognition';
 
 type User = {
   id: string;
@@ -9,15 +11,19 @@ type User = {
   email: string;
   role: 'admin' | 'user';
   avatar?: string;
+  faceEncoding?: string;
 };
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithFace: (faceDescriptor: Float32Array) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  registerFace: (userId: string, faceDescriptor: Float32Array) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  hasFaceRegistered: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +36,8 @@ const MOCK_USERS = [
     email: 'admin@example.com',
     password: 'password123',
     role: 'admin' as const,
-    avatar: ''
+    avatar: '',
+    faceEncoding: ''
   },
   {
     id: '2',
@@ -38,7 +45,8 @@ const MOCK_USERS = [
     email: 'user@example.com',
     password: 'password123',
     role: 'user' as const,
-    avatar: ''
+    avatar: '',
+    faceEncoding: ''
   }
 ];
 
@@ -60,6 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsLoading(false);
   }, []);
+
+  // Check if current user has registered face data
+  const hasFaceRegistered = Boolean(user?.faceEncoding);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -89,6 +100,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Login failed');
       console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithFace = async (faceDescriptor: Float32Array): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      // Get all users from the database
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .not('face_encoding', 'is', null);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      let matchedUser = null;
+      
+      // Try to find a match among users with registered faces
+      for (const profile of profiles) {
+        if (profile.face_encoding && doFacesMatch(faceDescriptor, profile.face_encoding)) {
+          matchedUser = profile;
+          break;
+        }
+      }
+      
+      if (!matchedUser) {
+        toast.error('Face not recognized');
+        return false;
+      }
+      
+      // Convert the Supabase profile to our User type
+      const user: User = {
+        id: matchedUser.id,
+        name: matchedUser.name,
+        email: matchedUser.email,
+        role: 'user', // Default role, you might want to store this in the database
+        avatar: matchedUser.avatar_url,
+        faceEncoding: matchedUser.face_encoding
+      };
+      
+      // Store user in state and localStorage
+      setUser(user);
+      localStorage.setItem('attendance_user', JSON.stringify(user));
+      
+      toast.success('Face recognized! Logged in successfully');
+      navigate('/dashboard');
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Face login failed');
+      console.error('Face login error:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -128,6 +194,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const registerFace = async (userId: string, faceDescriptor: Float32Array): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      // Convert the descriptor to a string for storage
+      const faceEncoding = descriptorToString(faceDescriptor);
+      
+      // Update the profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ face_encoding: faceEncoding })
+        .eq('id', userId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Update local user
+      if (user) {
+        const updatedUser = { ...user, faceEncoding };
+        setUser(updatedUser);
+        localStorage.setItem('attendance_user', JSON.stringify(updatedUser));
+      }
+      
+      toast.success('Face registered successfully');
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to register face');
+      console.error('Face registration error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('attendance_user');
@@ -141,9 +242,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isLoading,
         login,
+        loginWithFace,
         register,
+        registerFace,
         logout,
         isAuthenticated: !!user,
+        hasFaceRegistered,
       }}
     >
       {children}
