@@ -80,7 +80,11 @@ const Reports = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  // Fix: Change the type to match the Calendar component's DateRange type
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
     from: undefined,
     to: undefined,
   });
